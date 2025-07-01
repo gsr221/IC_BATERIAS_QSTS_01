@@ -6,6 +6,7 @@ from funAG import FunAG as AG
 import pandas as pd
 from funODSS import DSS
 
+
 #Limpa os dados da TreeView:
 def clearData(tv):
     tv.delete(*tv.get_children())
@@ -14,9 +15,9 @@ def clearData(tv):
 #Função que plota a curva de carga:
 def FunBotaoPlotar(ax, canva):
     ax.clear()
-    ax.plot(np.arange(0,24,1),cc, color='red', label='Curva de carga', linewidth=4)
+    ax.plot(cc, color='red', label='Curva de carga', linewidth=4)
     ax.set_ylabel('Porcentagem de carga')
-    ax.set_xticks(range(24))
+    # ax.set_xticks(range(24))
     ax.set_yticks(np.arange(0,1.25,0.25))
     ax.grid(True)
     canva.draw()
@@ -126,7 +127,7 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
         deseqs_max.append(max(deseq))
     
     #Coluna de horas:
-    dicResultadoAg['Hora'] = [i for i in range(24)]
+    dicResultadoAg['Hora'] = [i for i in range(n)]
     #Colunas de potências:
     dicResultadoAg['SOC A'] = listaSOCSA
     dicResultadoAg['SOC B'] = listaSOCSB
@@ -148,7 +149,6 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
     dicResultadoAg['FOB'] = dicResultadoAg['FOB'] * num_linhas
     
     
-    
     #Cria um DataFrame com os resultados:
     dfResultadoAg = pd.DataFrame(dicResultadoAg)
     
@@ -166,11 +166,11 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
     deseqMed = sum(dicResultadoAg['Deseq Depois']) / len(dicResultadoAg['Deseq Depois'])
     
     ax.clear()
-    ax.plot(np.arange(0,24,1), dicResultadoAg['Deseq Depois'], color='green', label='Desequilíbrios Max', linewidth=3)
-    ax.plot(np.arange(0,24,1), dicResultadoAg['Deseq Antes'], color='red', label='Desequilíbrios Antes', linewidth=3)
+    ax.plot(dicResultadoAg['Deseq Depois'], color='green', label='Desequilíbrios Max', linewidth=3)
+    ax.plot(dicResultadoAg['Deseq Antes'], color='red', label='Desequilíbrios Antes', linewidth=3)
     ax.axhline(y=deseqMed, color='green', linestyle='--', label='Desequilíbrio Médio')
     ax.set_ylabel('Porcentagem de carga')
-    ax.set_xticks(range(24))
+    # ax.set_xticks(range(24))
     ax.set_yticks(np.arange(0,3.75,0.25))
     ax.grid(True)
     canva.draw()

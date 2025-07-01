@@ -2,6 +2,7 @@ import win32com.client
 import pandas as pd
 from consts import *
 
+
 class DSS():
     def __init__(self):
         #==Objetos do openDSS==#

@@ -1,14 +1,14 @@
 import time as t
 
-linkFile = "'D:/IC/Segundo_ano/13Bus/IEEE13Nodeckt.dss'"
-seqVoltageDir = "D:/IC/Segundo_ano/13Bus/IEEE13Nodeckt_EXP_SEQVOLTAGES.CSV"
+linkFile = "'C:/Users/petel/OneDrive/Documentos/Neneca/IC/13Bus/IEEE13Nodeckt.dss'"
+seqVoltageDir = "C:/Users/petel/OneDrive/Documentos/Neneca/IC/13Bus/IEEE13Nodeckt_EXP_SEQVOLTAGES.CSV"
 # barra = 671
 SOCmin = 0.20
 SOCmax = 0.80
 eficiencia = 0.95
 dT = 1  # Intervalo de tempo em horas
 
-cc = [
+cc1 = [
     0.40,  # 00h
     0.35,  # 01h
     0.30,  # 02h
@@ -33,6 +33,12 @@ cc = [
     0.85,  # 21h
     0.70,  # 22h
     0.55   # 23h
+]
+
+
+cc = [
+    0.90,  # 18h
+    1.00,  # 19h
 ]
 
 def converte_tempo(t0):

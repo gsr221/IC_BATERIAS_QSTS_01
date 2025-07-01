@@ -26,7 +26,7 @@ class FunAG:
         bus=[]
         
         #==Cria os valores de SOC aleatórios entre os valores mínimos e máximos==
-        for _ in range(24):
+        for _ in range(len(cc)):
             soc1.append(random.uniform(SOCmin, SOCmax))
             soc2.append(random.uniform(SOCmin, SOCmax))
             soc3.append(random.uniform(SOCmin, SOCmax))
@@ -166,13 +166,13 @@ class FunAG:
         #==Recebe o valor da função objetivo==#
         fobVal = max(deseqs_max)
         
-        # if fobVal > 2.0:
-        #     #==Se o valor da FOB for maior que 2.0, retorna um valor alto para a FOB==#
-        #     # print('FOB:', fobVal)
-        #     self.fobs.append(10 + fobVal)
-        #     # print(f"fob: {10 + fobVal} - Desequilíbrio máximo maior que 2.0.")
-        #     # print("Indiv:",indiv)
-        #     return 10 + fobVal,
+        if fobVal > 2.0:
+            #==Se o valor da FOB for maior que 2.0, retorna um valor alto para a FOB==#
+            # print('FOB:', fobVal)
+            self.fobs.append(10 + fobVal)
+            # print(f"fob: {10 + fobVal} - Desequilíbrio máximo maior que 2.0.")
+            # print("Indiv:",indiv)
+            return 10 + fobVal,
         
         # print('FOB:', fobVal)
         self.fobs.append(fobVal)
@@ -180,8 +180,8 @@ class FunAG:
         return fobVal,
         
     
-   
-      
+    
+    
     ############## Algoritmo Genético ################
     #==Executa o Algoritmo Genético==#
     def execAg(self, pms, probCruz=0.9, probMut=0.1, numGen=700, numRep=1, numPop=200, numTorneio=3, eliteSize=10):
