@@ -19,7 +19,7 @@ class FunAG:
     
     
     #==Cria um cromossomo (indivíduo) com valores de SOC e barramento aleatórios==#
-    def criaCromBat(self):
+    def criaCromBatSOC(self):
         soc1=[]
         soc2=[]
         soc3=[]
@@ -42,11 +42,29 @@ class FunAG:
         return indiv
     
     
+    def criaCromBatPot(self):
+        pot1=[]
+        pot2=[]
+        pot3=[]
+        bus=[]
+        
+        #==Cria os valores de Pot aleatórios entre os valores de potMax da bateria==#   
+        for _ in range(len(cc)):
+            pot1.append(random.randint(-self.pmList[0],self.pmList[0]))
+            pot2.append(random.randint(-self.pmList[1],self.pmList[1]))
+            pot3.append(random.randint(-self.pmList[2],self.pmList[2]))
+            
+        #==Sorteia o valor de barramento entre 0 e o nº de barramentos - 1===#
+        bus.append(random.randint(0, len(self.barras)-1))
+        
+        indiv = pot1 + pot2 + pot3 + bus
+        
+        return indiv
     
     #==Método de mutação==#
     def mutateFun(self, indiv):
         novoIndiv = indiv
-        novoIndiv = self.criaCromBat()
+        novoIndiv = self.criaCromBatSOC()
         return novoIndiv    
     
     
@@ -85,7 +103,7 @@ class FunAG:
         
      
         
-    def FOBbat(self, indiv):
+    def FOBbatSOC(self, indiv):
         n = len(cc)
         
         socA=indiv[:n]
@@ -181,6 +199,107 @@ class FunAG:
         
     
     
+    def FOBbatPOT(self, indiv):
+        n = len(cc)
+        
+        potA=indiv[:n]
+        potB=indiv[n:2*n]
+        potC=indiv[2*n:3*n]
+        
+        #==Verifica se o barramento está dentro dos limites==#
+        if indiv[3*n] < 0 or indiv[3*n] >= len(self.barras):
+            # print(f"Barramento inválido: {indiv[3*n]}. Deve estar entre 0 e {len(self.barras)-1}.")
+            self.fobs.append(1000)
+            #print(f"fob: 1000 - Barramento inválido: {indiv[3*n]}. Deve estar entre 0 e {len(self.barras)-1}.")
+            return 1000,
+        
+        barra=str(self.barras[int(indiv[3*n])])
+        
+        pot = [potA, potB, potC]
+        # print(f"Valores de SOC: {soc}")
+        
+        #==Verifica se os valores de Pot estão dentro dos limites==#
+        if any(abs(pot[fase][valPot]) > self.pmList[fase] for fase in range(3) for valPot in pot[fase]):
+            dists = [0, 0, 0]
+            for fase in range(3):
+                for valPot in pot[fase]:
+                    dists[fase] = abs(max(dists[fase], max(abs(x) for x in valPot)) - self.pmList[fase])
+            
+            return 100 + max(dists),
+        
+        #==Calcula os valores de Energia==#
+        Ebat = max(self.pmList) * dT
+        E = [[],[],[]]
+        
+        for fase in range(3):
+            for i in range(n):
+                if i == 0:
+                    E[fase][i]=Ebat*0.8
+                else:
+                    if pot[fase][i] > 0:
+                        E[fase].append(E[fase][i-1] + pot[fase][i]*dT*eficiencia)
+                    else:
+                        E[fase].append(E[fase][i-1] + pot[fase][i]*dT*(1/eficiencia))
+        
+        #==Calcula SOCs==#
+        soc = [[],[],[]]
+        
+        for fase in range(3):
+            for i in range(n):
+                soc[fase].append(E[fase][i]/Ebat)
+                
+        #==Verifica se os valores de SOC estão dentro dos limites==#
+        if any(valSoc < SOCmin or valSoc > SOCmax for fase in soc for valSoc in fase):
+            maiorDist = 0
+            for fase in soc:
+                for valSoc in fase:
+                    if valSoc < SOCmin:
+                        dist = abs(SOCmin - valSoc)
+                        maiorDist = max(maiorDist, dist)
+                    elif valSoc > SOCmax:
+                        dist = abs(valSoc - SOCmax)
+                        maiorDist = max(maiorDist, dist)
+            
+            #print(f"fob: {100 + maiorDist} - Valores de SOC fora dos limites.")              
+            return 100 + maiorDist,  # Retorna um valor alto para a FOB
+        
+        deseqs_max = []
+        
+        #========ALOCA A BATERIA========#        
+        for i in range(n):
+            potsBat = [pot[0][i], pot[1][i], pot[2][i]]
+            # print(f"Potências: {potsBat}")
+            # print(f"Barramento: {barra}")
+            # print(f"cc: {cc[i]}")
+            
+            #==Aloca as potências no barramento e os bancos de capacitores e resolve o sistema==#
+            self.dss.alocaPot(barramento=barra, listaPoten=potsBat)
+            self.dss.solve(cc[i])
+        
+            #==Recebe as tensões de sequência e as coloca em um dicionário==#
+            dfSeqVoltages = self.dss.dfSeqVolt()
+            dicSecVoltages = dfSeqVoltages.to_dict(orient = 'list')
+            deseq = dicSecVoltages[' %V2/V1']
+            
+            deseqs_max.append(max(deseq))
+        
+        #==Recebe o valor da função objetivo==#
+        fobVal = max(deseqs_max)
+        
+        if fobVal > 2.0:
+            #==Se o valor da FOB for maior que 2.0, retorna um valor alto para a FOB==#
+            # print('FOB:', fobVal)
+            self.fobs.append(10 + fobVal)
+            # print(f"fob: {10 + fobVal} - Desequilíbrio máximo maior que 2.0.")
+            # print("Indiv:",indiv)
+            return 10 + fobVal,
+        
+        # print('FOB:', fobVal)
+        self.fobs.append(fobVal)
+        # print(f"fob: {fobVal} - Desequilíbrio máximo dentro dos limites.")
+        return fobVal,
+    
+    
     
     ############## Algoritmo Genético ################
     #==Executa o Algoritmo Genético==#
@@ -192,12 +311,12 @@ class FunAG:
         toolbox.register("mate", self.cruzamentoFunBLX)
         toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.2, indpb=0.2)
         toolbox.register("select", tools.selTournament, tournsize=numTorneio)
-        toolbox.register("evaluate", self.FOBbat)
+        toolbox.register("evaluate", self.FOBbatSOC)
 
         for _ in range(numRep):
             print(f"{converte_tempo(t0)} - Iniciando execução do Algoritmo Genético...")
             
-            toolbox.register("indiv", tools.initIterate, creator.estrIndiv, self.criaCromBat)
+            toolbox.register("indiv", tools.initIterate, creator.estrIndiv, self.criaCromBatSOC)
             toolbox.register("pop", tools.initRepeat, list, toolbox.indiv)
             populacao = toolbox.pop(n=numPop)
 
