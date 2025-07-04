@@ -65,7 +65,7 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
     
     
     #Chama o método de execução do algoritmo genético:
-    results, log, dicMelhoresIndiv, bestFobs, listaBarras = ag.execAg(pms=pms, numGen=50)
+    results, log, dicMelhoresIndiv, bestFobs, listaBarras = ag.execAg(pms=pms, numGen=30)
     
     #print(dicMelhoresIndiv)
     print("melhores fobs:", bestFobs)
@@ -82,29 +82,29 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
     listaSOCSB = listaCrom[0][n:2*n]
     listaSOCC = listaCrom[0][2*n:3*n]
     
-    soc = [listaSOCSA, listaSOCSB, listaSOCC]
+    pots = [listaSOCSA, listaSOCSB, listaSOCC]
     
     #==Calcula a energia máxima de cada fase==#
     #Pmax * dT, onde Pmax é a potência máxima de cada fase e dT é o intervalo de tempo em horas
-    deltaE = [[],[],[]]
-    E_bat = [pms[0] * dT, pms[1] * dT, pms[2] * dT]
+    # deltaE = [[],[],[]]
+    # E_bat = [pms[0] * dT, pms[1] * dT, pms[2] * dT]
     
     #==Calcula a variação de SOC para cada fase==#
-    for fase in range(3):    
-        for i in range(n):
-            if i == 0:
-                deltaE[fase].append((soc[fase][i]) * E_bat[fase])
-            else:
-                deltaE[fase].append((soc[fase][i] - soc[fase][i-1]) * E_bat[fase])
+    # for fase in range(3):    
+    #     for i in range(n):
+    #         if i == 0:
+    #             deltaE[fase].append((soc[fase][i]) * E_bat[fase])
+    #         else:
+    #             deltaE[fase].append((soc[fase][i] - soc[fase][i-1]) * E_bat[fase])
             
     #==Calcula a potência de cada fase==#
-    pots = [[],[],[]]
-    for fase in range(3):
-        for i in range(n):
-            if deltaE[fase][i] > 0:
-                pots[fase].append(deltaE[fase][i] / (1 * eficiencia))
-            else:
-                pots[fase].append(deltaE[fase][i] / (1 * 1/eficiencia))
+    # pots = [[],[],[]]
+    # for fase in range(3):
+    #     for i in range(n):
+    #         if deltaE[fase][i] > 0:
+    #             pots[fase].append(deltaE[fase][i] / (1 * eficiencia))
+    #         else:
+    #             pots[fase].append(deltaE[fase][i] / (1 * 1/eficiencia))
         
     deseqs_max = []
     

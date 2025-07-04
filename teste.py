@@ -1,3 +1,5 @@
-a = [1,-1,-5,3]
+import numpy as np
+a = np.array([[1,2],[3,4]])
+b = 1/2
 
-print(abs(max(a)))
+print(a*b)

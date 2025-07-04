@@ -3,7 +3,7 @@ import random
 from consts import *
 from funODSS import DSS
 import time as t
-
+import numpy as np
 
 class FunAG:
     def __init__(self):
@@ -199,7 +199,7 @@ class FunAG:
         
     
     
-    def FOBbatPOT(self, indiv):
+    def FOBbatPot(self, indiv):
         n = len(cc)
         
         potA=indiv[:n]
@@ -218,37 +218,34 @@ class FunAG:
         pot = [potA, potB, potC]
         # print(f"Valores de SOC: {soc}")
         
-        #==Verifica se os valores de Pot estão dentro dos limites==#
-        if any(abs(pot[fase][valPot]) > self.pmList[fase] for fase in range(3) for valPot in pot[fase]):
+        #==Verifica se os valores de Pot estão dentro dos limites se naão aplica penalidade==#
+        if any(abs(valPot) > self.pmList[fase] for fase in range(3) for valPot in pot[fase]):
             dists = [0, 0, 0]
             for fase in range(3):
                 for valPot in pot[fase]:
-                    dists[fase] = abs(max(dists[fase], max(abs(x) for x in valPot)) - self.pmList[fase])
+                    if valPot > 1000:
+                        dists[fase] = max(dists[fase], abs(valPot-1000))
             
             return 100 + max(dists),
         
-        #==Calcula os valores de Energia==#
+        #==Calcula os valores de Energia para poder calcular o SOC==#
         Ebat = max(self.pmList) * dT
-        E = [[],[],[]]
+        E = np.zeros((3,n))
         
         for fase in range(3):
             for i in range(n):
                 if i == 0:
-                    E[fase][i]=Ebat*0.8
+                    E[fase][i] = Ebat*0.8
                 else:
                     if pot[fase][i] > 0:
-                        E[fase].append(E[fase][i-1] + pot[fase][i]*dT*eficiencia)
+                        E[fase][i] = E[fase][i-1] + pot[fase][i]*dT*eficiencia
                     else:
-                        E[fase].append(E[fase][i-1] + pot[fase][i]*dT*(1/eficiencia))
+                        E[fase][i] = E[fase][i-1] + pot[fase][i]*dT*(1/eficiencia)
         
-        #==Calcula SOCs==#
-        soc = [[],[],[]]
-        
-        for fase in range(3):
-            for i in range(n):
-                soc[fase].append(E[fase][i]/Ebat)
+        #==Calcula SOCs a partir dos valores de energia==#
+        soc = E * (1/Ebat)
                 
-        #==Verifica se os valores de SOC estão dentro dos limites==#
+        #==Verifica se os valores de SOC estão dentro dos limites se não aplica penalidade==#
         if any(valSoc < SOCmin or valSoc > SOCmax for fase in soc for valSoc in fase):
             maiorDist = 0
             for fase in soc:
@@ -265,7 +262,7 @@ class FunAG:
         
         deseqs_max = []
         
-        #========ALOCA A BATERIA========#        
+        #========SE TUDO ESTIVER DENTRO DOS LIMITES ALOCA A BATERIA========#        
         for i in range(n):
             potsBat = [pot[0][i], pot[1][i], pot[2][i]]
             # print(f"Potências: {potsBat}")
@@ -311,12 +308,12 @@ class FunAG:
         toolbox.register("mate", self.cruzamentoFunBLX)
         toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.2, indpb=0.2)
         toolbox.register("select", tools.selTournament, tournsize=numTorneio)
-        toolbox.register("evaluate", self.FOBbatSOC)
+        toolbox.register("evaluate", self.FOBbatPot)
 
         for _ in range(numRep):
             print(f"{converte_tempo(t0)} - Iniciando execução do Algoritmo Genético...")
             
-            toolbox.register("indiv", tools.initIterate, creator.estrIndiv, self.criaCromBatSOC)
+            toolbox.register("indiv", tools.initIterate, creator.estrIndiv, self.criaCromBatPot)
             toolbox.register("pop", tools.initRepeat, list, toolbox.indiv)
             populacao = toolbox.pop(n=numPop)
 
