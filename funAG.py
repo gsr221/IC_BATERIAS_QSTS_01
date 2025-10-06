@@ -17,8 +17,11 @@ class FunAG:
         self.fobs = []
     
     
-    
-    #==Cria um cromossomo (indivíduo) com valores de SOC e barramento aleatórios==#
+ 
+ 
+###############################################################################################    
+#########  Cria um cromossomo (indivíduo) com valores de SOC e barramento aleatórios  #########
+###############################################################################################
     def criaCromBatSOC(self):
         soc1=[]
         soc2=[]
@@ -42,6 +45,10 @@ class FunAG:
         return indiv
     
     
+    
+############################################################################
+################ Cria um cromossomo com Potência e Barramento ##############
+############################################################################    
     def criaCromBatPot(self):
         pot1=[]
         pot2=[]
@@ -67,9 +74,11 @@ class FunAG:
         novoIndiv = self.criaCromBatSOC()
         return novoIndiv    
     
+ 
     
-    
-    #==Método de cruzamento BLX==#
+############################################################    
+################==Método de cruzamento BLX==################
+############################################################
     def cruzamentoFunBLX(self, indiv1, indiv2):
         newIndiv1 = indiv1
         newIndiv2 = indiv2
@@ -101,8 +110,11 @@ class FunAG:
         #print(f"newIndiv1: {newIndiv1} - newIndiv2: {newIndiv2}")
         return newIndiv1, newIndiv2    
         
-     
-        
+
+
+##########################################################################################################
+############################### Função Objetivo para Bateria com SOC Variável ############################
+##########################################################################################################          
     def FOBbatSOC(self, indiv):
         n = len(cc)
         
@@ -197,8 +209,11 @@ class FunAG:
         # print(f"fob: {fobVal} - Desequilíbrio máximo dentro dos limites.")
         return fobVal,
         
-    
-    
+  
+  
+###############################################################################################################    
+############################### Função Objetivo para Bateria com Potência Variável ############################
+###############################################################################################################    
     def FOBbatPot(self, indiv):
         n = len(cc)
         
@@ -296,49 +311,55 @@ class FunAG:
         # print(f"fob: {fobVal} - Desequilíbrio máximo dentro dos limites.")
         return fobVal,
     
-    
-    
-    ############## Algoritmo Genético ################
+
+
+######################################################################
+######################## Algoritmo Genético ##########################
+######################################################################
     #==Executa o Algoritmo Genético==#
     def execAg(self, pms, probCruz=0.9, probMut=0.1, numGen=700, numRep=1, numPop=200, numTorneio=3, eliteSize=10):
-        toolbox = base.Toolbox()
-        self.pmList = pms
+        #==Inicio da contagem de tempo==#
         t0 = t.time()
+        self.pmList = pms
+        
+        #==Configuração do AG==#
+        toolbox = base.Toolbox()
         dicMelhoresIndiv = {"cromossomos": [], "fobs": []}
-        toolbox.register("mate", self.cruzamentoFunBLX)
-        toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.2, indpb=0.2)
-        toolbox.register("select", tools.selTournament, tournsize=numTorneio)
-        toolbox.register("evaluate", self.FOBbatPot)
+        toolbox.register("mate", self.cruzamentoFunBLX)  #Cruzamento BLX
+        toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.2, indpb=0.2)  #Mutação Gaussiana
+        toolbox.register("select", tools.selTournament, tournsize=numTorneio)  #Seleção por torneio
+        toolbox.register("evaluate", self.FOBbatPot)  #Função objetivo para bateria com potência variável
 
-        for _ in range(numRep):
-            print(f"{converte_tempo(t0)} - Iniciando execução do Algoritmo Genético...")
+        for rep in range(numRep):
+            print(f"{converte_tempo(t0)} - Iniciando execução do Algoritmo Genético... Repetição", rep + 1, "de", numRep)
             
-            toolbox.register("indiv", tools.initIterate, creator.estrIndiv, self.criaCromBatPot)
-            toolbox.register("pop", tools.initRepeat, list, toolbox.indiv)
-            populacao = toolbox.pop(n=numPop)
+            toolbox.register("indiv", tools.initIterate, creator.estrIndiv, self.criaCromBatPot)  #Cria indivíduo com Potência e Barramento
+            toolbox.register("pop", tools.initRepeat, list, toolbox.indiv)  #Cria população
+            populacao = toolbox.pop(n=numPop)  #Tamanho da população
 
-            hof = tools.HallOfFame(1)
-            elite_size = eliteSize
+            hof = tools.HallOfFame(1)  #Melhor indivíduo
+            elite_size = eliteSize  #Tamanho do elitismo
 
-            # Avalia população inicial
-            invalid_ind = [ind for ind in populacao if not ind.fitness.valid]
-            fitnesses = map(toolbox.evaluate, invalid_ind)
-            for ind, fit in zip(invalid_ind, fitnesses):
+            #==Avalia população inicial==#
+            invalid_ind = [ind for ind in populacao if not ind.fitness.valid]  
+            fitnesses = map(toolbox.evaluate, invalid_ind)  #Avalia os indivíduos inválidos
+            for ind, fit in zip(invalid_ind, fitnesses):    #Atribui o valor da função objetivo ao indivíduo
                 ind.fitness.values = fit
 
-            best_fobs = []
+            best_fobs = []  #Lista para armazenar os melhores valores da FOB em cada geração
 
+            #==Início das gerações==#
             for gen in range(numGen):
                 # Log da geração
                 if gen % 10 == 0:
                     print(f"{converte_tempo(t0)} - Geração {gen + 1} de {numGen}... ")
                     
                 # Elitismo
-                elite = tools.selBest(populacao, elite_size)
+                elite = tools.selBest(populacao, elite_size)  #Seleciona os melhores indivíduos
 
                 # Seleção + clone
-                offspring = toolbox.select(populacao, len(populacao) - elite_size)
-                offspring = list(map(toolbox.clone, offspring))
+                offspring = toolbox.select(populacao, len(populacao) - elite_size)  #Seleciona os indivíduos para reprodução
+                offspring = list(map(toolbox.clone, offspring))  #Clona os indivíduos selecionados
 
                 # Cruzamento
                 for child1, child2 in zip(offspring[::2], offspring[1::2]):

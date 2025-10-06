@@ -1,7 +1,7 @@
 import time as t
 
-linkFile = "'C:/Users/petel/OneDrive/Documentos/Neneca/IC/13Bus/IEEE13Nodeckt.dss'"
-seqVoltageDir = "C:/Users/petel/OneDrive/Documentos/Neneca/IC/13Bus/IEEE13Nodeckt_EXP_SEQVOLTAGES.CSV"
+linkFile = "'D:/IC/Segundo_ano/13Bus/IEEE13Nodeckt.dss'"
+seqVoltageDir = "D:/IC/Segundo_ano/13Bus/IEEE13Nodeckt_EXP_SEQVOLTAGES.CSV"
 # barra = 671
 SOCmin = 0.20
 SOCmax = 0.80
