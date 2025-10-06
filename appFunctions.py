@@ -65,7 +65,7 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
     
     
     #Chama o método de execução do algoritmo genético:
-    results, log, dicMelhoresIndiv, bestFobs, listaBarras = ag.execAg(pms=pms)
+    results, log, dicMelhoresIndiv, bestFobs, listaBarras = ag.execAg(pms=pms, numGen=100)
     
     #print(dicMelhoresIndiv)
     print("melhores fobs:", bestFobs)

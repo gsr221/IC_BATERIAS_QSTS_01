@@ -216,6 +216,7 @@ class FunAG:
 ###############################################################################################################    
     def FOBbatPot(self, indiv):
         n = len(cc)
+        # print(n)
         
         potA=indiv[:n]
         potB=indiv[n:2*n]
@@ -246,16 +247,27 @@ class FunAG:
         #==Calcula os valores de Energia para poder calcular o SOC==#
         Ebat = max(self.pmList) * dT
         E = np.zeros((3,n))
-        
+
+#############################Duvida
+#############################################################################################################################################        
         for fase in range(3):
             for i in range(n):
-                if i == 0:
-                    E[fase][i] = Ebat*0.8
+                ####  ISSO AQUI ESTÁ CERTO?  ####
+                if i == 0:  #==Primeiro valor de energia, considera q no indice -1 a bateria estava completamente carregada==#
+                    # Verifica se a bateria está sendo carregada ou descarregada
+                    if pot[fase][i] > 0:
+                        E[fase][i] = Ebat*0.8 + pot[fase][i]*dT*eficiencia
+                    else:
+                        E[fase][i] = Ebat*0.8 + pot[fase][i]*dT*(1/eficiencia)
                 else:
+                    # Verifica se a bateria está sendo carregada ou descarregada
                     if pot[fase][i] > 0:
                         E[fase][i] = E[fase][i-1] + pot[fase][i]*dT*eficiencia
                     else:
                         E[fase][i] = E[fase][i-1] + pot[fase][i]*dT*(1/eficiencia)
+        # print('lista E:',E)
+        # print('lista Pots:',pot)
+#############################################################################################################################################
         
         #==Calcula SOCs a partir dos valores de energia==#
         soc = E * (1/Ebat)
