@@ -1,14 +1,21 @@
 import time as t
 
-linkFile = "'D:/IC/Segundo_ano/13Bus/IEEE13Nodeckt.dss'"
-seqVoltageDir = "D:/IC/Segundo_ano/13Bus/IEEE13Nodeckt_EXP_SEQVOLTAGES.CSV"
+NG = 1
+
+linkFile = "'D:/IC/Segundo_ano/4Bus-DY-Bal/4Bus-DY-Bal.DSS'"
+seqVoltageDir = "D:/IC/Segundo_ano/4Bus-DY-Bal/4busDYBal_EXP_SEQVOLTAGES.CSV"
+
 # barra = 671
 SOCmin = 0.20
 SOCmax = 0.80
+
 eficiencia = 0.95
+
 dT = 1  # Intervalo de tempo em horas
 
-cc1 = [
+baseKVmediaTensao = 4.16  # kV media tensão base do sistema
+
+cc = [
     0.40,  # 00h
     0.35,  # 01h
     0.30,  # 02h
@@ -36,9 +43,19 @@ cc1 = [
 ]
 
 
-cc = [
-    0.90,  # 18h
-    1.00,  # 19h
+cc1 = [
+    0.40,  # 00h
+    0.35,  # 01h
+    0.30,  # 02h
+    0.28,  # 03h
+    0.30,  # 04h
+    0.40,  # 05h
+    0.55,  # 06h
+    0.70,  # 07h
+    0.75,  # 08h
+    0.65,  # 09h
+    0.60,
+    1.00  
 ]
 
 def converte_tempo(t0):

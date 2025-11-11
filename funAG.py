@@ -10,75 +10,44 @@ class FunAG:
         self.dss = DSS()
         self.dss.compileFile(linkFile)
         self.barras = self.dss.BusNames()
+        #print(f"Barras trifásicas disponíveis para alocação: {self.barras}")
         self.pmList = []
         creator.create("fitnessMulti", base.Fitness, weights=(-1.0, ))
         #Criando a classe do indivíduo
         creator.create("estrIndiv", list, fitness = creator.fitnessMulti)
         self.fobs = []
     
-    
- 
- 
-###############################################################################################    
-#########  Cria um cromossomo (indivíduo) com valores de SOC e barramento aleatórios  #########
-###############################################################################################
-    def criaCromBatSOC(self):
-        soc1=[]
-        soc2=[]
-        soc3=[]
-        bus=[]
-        
-        #==Cria os valores de SOC aleatórios entre os valores mínimos e máximos==
-        for _ in range(len(cc)):
-            soc1.append(random.uniform(SOCmin, SOCmax))
-            soc2.append(random.uniform(SOCmin, SOCmax))
-            soc3.append(random.uniform(SOCmin, SOCmax))
 
-        #==Cria os valores de barramento aleatórios entre 0 e o número de barramentos - 1==#
-        bus.append(random.randint(0, len(self.barras)-1))
-        
-        #==Cria o indivíduo (cromossomo) com os valores de SOC e barramento==#
-        #==O indivíduo é uma lista com os valores de SOC1, SOC2, SOC3 e o barramento==#
-        #==O tamanho do indivíduo é 3*Tn + 1 (SOCs das fases A, B e C e 1 barramento)==#
-        indiv = soc1 + soc2 + soc3 + bus
-        
-        return indiv
-    
-    
-    
-############################################################################
-################ Cria um cromossomo com Potência e Barramento ##############
-############################################################################    
-    def criaCromBatPot(self):
-        pot1=[]
-        pot2=[]
-        pot3=[]
+################==Cria um cromossomo (indivíduo) com valores de Corrente e barramento aleatórios==################
+    def criaCromBatCorr(self):
+        i1=[]
+        i2=[]
+        i3=[]
         bus=[]
         
-        #==Cria os valores de Pot aleatórios entre os valores de potMax da bateria==#   
+        ##  Dúvida, como calcular o valor máximo da corrente?  ##
+        self.imax = [self.pmList[0]/(baseKVmediaTensao/1.732050807),
+                self.pmList[1]/(baseKVmediaTensao/1.732050807),
+                self.pmList[2]/(baseKVmediaTensao/1.732050807)]  #Corrente máxima em cada fase (A), I = P/(V_linha/√3)
+
         for _ in range(len(cc)):
-            pot1.append(random.randint(-self.pmList[0],self.pmList[0]))
-            pot2.append(random.randint(-self.pmList[1],self.pmList[1]))
-            pot3.append(random.randint(-self.pmList[2],self.pmList[2]))
-            
-        #==Sorteia o valor de barramento entre 0 e o nº de barramentos - 1===#
+            i1.append(random.uniform(-self.imax[0], self.imax[0]))
+            i2.append(random.uniform(-self.imax[1], self.imax[1]))
+            i3.append(random.uniform(-self.imax[2], self.imax[2]))
+
         bus.append(random.randint(0, len(self.barras)-1))
-        
-        indiv = pot1 + pot2 + pot3 + bus
-        
+        indiv = i1 + i2 + i3 + bus
         return indiv
-    
-    #==Método de mutação==#
+
+
+################==Método de mutação==################
     def mutateFun(self, indiv):
         novoIndiv = indiv
         novoIndiv = self.criaCromBatSOC()
         return novoIndiv    
-    
- 
-    
-############################################################    
+  
+
 ################==Método de cruzamento BLX==################
-############################################################
     def cruzamentoFunBLX(self, indiv1, indiv2):
         newIndiv1 = indiv1
         newIndiv2 = indiv2
@@ -108,188 +77,96 @@ class FunAG:
                 newIndiv2[gene] = random.randint(minGene, maxGene)
             
         #print(f"newIndiv1: {newIndiv1} - newIndiv2: {newIndiv2}")
-        return newIndiv1, newIndiv2    
-        
+        return newIndiv1, newIndiv2
 
 
-##########################################################################################################
-############################### Função Objetivo para Bateria com SOC Variável ############################
-##########################################################################################################          
-    def FOBbatSOC(self, indiv):
+################==Função objetivo para bateria com cromossomo de corrente==################
+    def FOBbatCurrent(self, indiv):
         n = len(cc)
+        #print(indiv)
+        # Separa as correntes por fase
+        i = np.array([indiv[:n], indiv[n:2*n], indiv[2*n:3*n]])
         
-        socA=indiv[:n]
-        socB=indiv[n:2*n]
-        socC=indiv[2*n:3*n]
         
-        #==Verifica se o barramento está dentro dos limites==#
+        # Verifica se o barramento existe
         if indiv[3*n] < 0 or indiv[3*n] >= len(self.barras):
-            # print(f"Barramento inválido: {indiv[3*n]}. Deve estar entre 0 e {len(self.barras)-1}.")
             self.fobs.append(1000)
-            #print(f"fob: 1000 - Barramento inválido: {indiv[3*n]}. Deve estar entre 0 e {len(self.barras)-1}.")
             return 1000,
         
-        barra=str(self.barras[int(indiv[3*n])])
         
-        soc = [socA, socB, socC]
-        # print(f"Valores de SOC: {soc}")
+        barra = str(self.barras[int(indiv[3*n])])
+        self.dss.dssCircuit.SetActiveBus(barra)
+        kVBaseBarra = self.dss.dssBus.kVBase
+        #print(f"Barramento ativo: {barra} - kVBase: {kVBaseBarra}")
         
-
-        #==Verifica se os valores de SOC estão dentro dos limites==#
-        if any(valSoc < SOCmin or valSoc > SOCmax for fase in soc for valSoc in fase):
-            maiorDist = 0
-            for fase in soc:
-                for valSoc in fase:
-                    if valSoc < SOCmin:
-                        dist = abs(SOCmin - valSoc)
-                        maiorDist = max(maiorDist, dist)
-                    elif valSoc > SOCmax:
-                        dist = abs(valSoc - SOCmax)
-                        maiorDist = max(maiorDist, dist)
-            
-            self.fobs.append(100 + maiorDist)  # Retorna um valor alto para a FOB 
-            #print(f"fob: {100 + maiorDist} - Valores de SOC fora dos limites.")              
-            return 100 + maiorDist,  # Retorna um valor alto para a FOB   
         
-        #==Calcula a energia máxima de cada fase==#
-        #Pmax * dT, onde Pmax é a potência máxima de cada fase e dT é o intervalo de tempo em horas
-        deltaE = [[],[],[]]
-        E_bat = [self.pmList[0] * dT, self.pmList[1] * dT, self.pmList[2] * dT]
+        #==Verifica se o barramento tem o valor de tensão base correto para alocação da bateria==#
+        if round(kVBaseBarra,2) != round(baseKVmediaTensao/1.732050807,2):
+            self.fobs.append(1000)
+            return 1000,
         
-        #==Calcula a variação de SOC para cada fase==#
-        for fase in range(3):    
-            for i in range(n):
-                if i == 0:
-                    deltaE[fase].append((soc[fase][i]) * E_bat[fase])
-                else:
-                    deltaE[fase].append((soc[fase][i] - soc[fase][i-1]) * E_bat[fase])
-                
-        #==Calcula a potência de cada fase==#
-        pots = [[],[],[]]
+        
+        #==Verifica se os valores de corrente estão dentro dos limites se não aplica penalidade==#
+        maskAcima = []
         for fase in range(3):
-            for i in range(n):
-                if deltaE[fase][i] > 0:
-                    pots[fase].append(deltaE[fase][i] / (1 * eficiencia))
-                else:
-                    pots[fase].append(deltaE[fase][i] / (1 * 1/eficiencia))
-            
-        deseqs_max = []
-        
-        #========ALOCA A BATERIA========#        
-        for i in range(n):
-            potsBat = [pots[0][i], pots[1][i], pots[2][i]]
-            # print(f"Potências: {potsBat}")
-            # print(f"Barramento: {barra}")
-            # print(f"cc: {cc[i]}")
-            
-            #==Aloca as potências no barramento e os bancos de capacitores e resolve o sistema==#
-            self.dss.alocaPot(barramento=barra, listaPoten=potsBat)
-            self.dss.solve(cc[i])
-        
-            #==Recebe as tensões de sequência e as coloca em um dicionário==#
-            dfSeqVoltages = self.dss.dfSeqVolt()
-            dicSecVoltages = dfSeqVoltages.to_dict(orient = 'list')
-            deseq = dicSecVoltages[' %V2/V1']
-            
-            deseqs_max.append(max(deseq))
-        
-        #==Recebe o valor da função objetivo==#
-        fobVal = max(deseqs_max)
-        
-        if fobVal > 2.0:
-            #==Se o valor da FOB for maior que 2.0, retorna um valor alto para a FOB==#
-            # print('FOB:', fobVal)
-            self.fobs.append(10 + fobVal)
-            # print(f"fob: {10 + fobVal} - Desequilíbrio máximo maior que 2.0.")
-            # print("Indiv:",indiv)
-            return 10 + fobVal,
-        
-        # print('FOB:', fobVal)
-        self.fobs.append(fobVal)
-        # print(f"fob: {fobVal} - Desequilíbrio máximo dentro dos limites.")
-        return fobVal,
-        
-  
-  
-###############################################################################################################    
-############################### Função Objetivo para Bateria com Potência Variável ############################
-###############################################################################################################    
-    def FOBbatPot(self, indiv):
-        n = len(cc)
-        # print(n)
-        
-        potA=indiv[:n]
-        potB=indiv[n:2*n]
-        potC=indiv[2*n:3*n]
-        
-        #==Verifica se o barramento está dentro dos limites==#
-        if indiv[3*n] < 0 or indiv[3*n] >= len(self.barras):
-            # print(f"Barramento inválido: {indiv[3*n]}. Deve estar entre 0 e {len(self.barras)-1}.")
-            self.fobs.append(1000)
-            #print(f"fob: 1000 - Barramento inválido: {indiv[3*n]}. Deve estar entre 0 e {len(self.barras)-1}.")
-            return 1000,
-        
-        barra=str(self.barras[int(indiv[3*n])])
-        
-        pot = [potA, potB, potC]
-        # print(f"Valores de SOC: {soc}")
-        
-        #==Verifica se os valores de Pot estão dentro dos limites se naão aplica penalidade==#
-        if any(abs(valPot) > self.pmList[fase] for fase in range(3) for valPot in pot[fase]):
-            dists = [0, 0, 0]
+            maskAcima.append(abs(i[fase]) > self.imax[fase])
+        if np.any(maskAcima):
+            dists = np.array([0, 0, 0])
             for fase in range(3):
-                for valPot in pot[fase]:
-                    if valPot > 1000:
-                        dists[fase] = max(dists[fase], abs(valPot-1000))
-            
-            return 100 + max(dists),
+                distAcima = abs(i[fase][maskAcima[fase]]) - self.imax[fase] if np.any(maskAcima[fase]) else 0
+                dists[fase] = float(np.max(distAcima))
+            return 300 + max(dists),
         
-        #==Calcula os valores de Energia para poder calcular o SOC==#
-        Ebat = max(self.pmList) * dT
-        E = np.zeros((3,n))
-
-#############################Duvida
-#############################################################################################################################################        
+        
+        #==Passa o cromossomo de corrente para potencia==#
+        pot = i * (baseKVmediaTensao/1.732050807)
+        
+        
+        #==Calcula a energia armazenada em cada fase em cada instante de tempo==#
+        Ebat = np.array(self.pmList) * dT
+        e = np.zeros((3,n))
         for fase in range(3):
             for i in range(n):
-                ####  ISSO AQUI ESTÁ CERTO?  ####
                 if i == 0:  #==Primeiro valor de energia, considera q no indice -1 a bateria estava completamente carregada==#
                     # Verifica se a bateria está sendo carregada ou descarregada
                     if pot[fase][i] > 0:
-                        E[fase][i] = Ebat*0.8 + pot[fase][i]*dT*eficiencia
+                        e[fase][i] = Ebat[fase]*0.8 + pot[fase][i]*dT*eficiencia
                     else:
-                        E[fase][i] = Ebat*0.8 + pot[fase][i]*dT*(1/eficiencia)
+                        e[fase][i] = Ebat[fase]*0.8 + pot[fase][i]*dT*(1/eficiencia)
                 else:
                     # Verifica se a bateria está sendo carregada ou descarregada
                     if pot[fase][i] > 0:
-                        E[fase][i] = E[fase][i-1] + pot[fase][i]*dT*eficiencia
+                        e[fase][i] = e[fase][i-1] + pot[fase][i]*dT*eficiencia
                     else:
-                        E[fase][i] = E[fase][i-1] + pot[fase][i]*dT*(1/eficiencia)
-        # print('lista E:',E)
-        # print('lista Pots:',pot)
-#############################################################################################################################################
+                        e[fase][i] = e[fase][i-1] + pot[fase][i]*dT*(1/eficiencia)
+
+
+        #==Calcula o SOC em cada instante de tempo==#
+        soc = np.zeros((3,n))
+        for fase in range(3):
+            soc[fase] = e[fase] * (1/Ebat[fase])
+
+
+        # print("Potências em cada fase:", pot)
+        # print("")
+        # print("Energia armazenada em cada fase:", e)
+        # print("")
+        # print(f"Soc: {soc}")
+        # print("")
         
-        #==Calcula SOCs a partir dos valores de energia==#
-        soc = E * (1/Ebat)
-                
+        
         #==Verifica se os valores de SOC estão dentro dos limites se não aplica penalidade==#
-        if any(valSoc < SOCmin or valSoc > SOCmax for fase in soc for valSoc in fase):
-            maiorDist = 0
-            for fase in soc:
-                for valSoc in fase:
-                    if valSoc < SOCmin:
-                        dist = abs(SOCmin - valSoc)
-                        maiorDist = max(maiorDist, dist)
-                    elif valSoc > SOCmax:
-                        dist = abs(valSoc - SOCmax)
-                        maiorDist = max(maiorDist, dist)
-            
-            #print(f"fob: {100 + maiorDist} - Valores de SOC fora dos limites.")              
-            return 100 + maiorDist,  # Retorna um valor alto para a FOB
-        
+        maskAcima = soc > SOCmax
+        maskAbaixo = soc < SOCmin
+        if np.any(maskAcima) or np.any(maskAbaixo):
+            distAcima = soc[maskAcima] - SOCmax if np.any(maskAcima) else 0
+            distAbaixo = SOCmin - soc[maskAbaixo] if np.any(maskAbaixo) else 0
+            maiorDist = float(max(np.max(distAcima), np.max(distAbaixo)))
+            return 200 + maiorDist,  # Retorna um valor alto para a FOB
+
+
+        #========SE TUDO ESTIVER DENTRO DOS LIMITES ALOCA A BATERIA========#
         deseqs_max = []
-        
-        #========SE TUDO ESTIVER DENTRO DOS LIMITES ALOCA A BATERIA========#        
         for i in range(n):
             potsBat = [pot[0][i], pot[1][i], pot[2][i]]
             # print(f"Potências: {potsBat}")
@@ -307,6 +184,7 @@ class FunAG:
             
             deseqs_max.append(max(deseq))
         
+        
         #==Recebe o valor da função objetivo==#
         fobVal = max(deseqs_max)
         
@@ -322,13 +200,10 @@ class FunAG:
         self.fobs.append(fobVal)
         # print(f"fob: {fobVal} - Desequilíbrio máximo dentro dos limites.")
         return fobVal,
-    
 
 
-######################################################################
-######################## Algoritmo Genético ##########################
-######################################################################
-    #==Executa o Algoritmo Genético==#
+
+################==Algoritmo Genético==################
     def execAg(self, pms, probCruz=0.9, probMut=0.1, numGen=700, numRep=1, numPop=200, numTorneio=3, eliteSize=10):
         #==Inicio da contagem de tempo==#
         t0 = t.time()
@@ -340,12 +215,12 @@ class FunAG:
         toolbox.register("mate", self.cruzamentoFunBLX)  #Cruzamento BLX
         toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.2, indpb=0.2)  #Mutação Gaussiana
         toolbox.register("select", tools.selTournament, tournsize=numTorneio)  #Seleção por torneio
-        toolbox.register("evaluate", self.FOBbatPot)  #Função objetivo para bateria com potência variável
+        toolbox.register("evaluate", self.FOBbatCurrent)  #Função objetivo para bateria com corrente variável
 
         for rep in range(numRep):
             print(f"{converte_tempo(t0)} - Iniciando execução do Algoritmo Genético... Repetição", rep + 1, "de", numRep)
-            
-            toolbox.register("indiv", tools.initIterate, creator.estrIndiv, self.criaCromBatPot)  #Cria indivíduo com Potência e Barramento
+
+            toolbox.register("indiv", tools.initIterate, creator.estrIndiv, self.criaCromBatCorr)  #Cria indivíduo com Corrente e Barramento
             toolbox.register("pop", tools.initRepeat, list, toolbox.indiv)  #Cria população
             populacao = toolbox.pop(n=numPop)  #Tamanho da população
 

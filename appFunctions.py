@@ -41,7 +41,7 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
     pms = [int(pm) for pm in pms]
     
     #Cria o dicionario com as potencias em cada fase, barramento e valor da fob:
-    dicResultadoAg = {'Hora':[], 'SOC A':[], 'SOC B':[], 'SOC C':[], 'Barra':[], 'FOB':[], 'Deseq Depois':[], 'Deseq Antes':[]}
+    dicResultadoAg = {'Hora':[], 'I A':[], 'I B':[], 'I C':[], 'Barra':[], 'FOB':[], 'Deseq Depois':[], 'Deseq Antes':[]}
     ag = AG()
     dss = DSS()
 
@@ -65,7 +65,7 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
     
     
     #Chama o método de execução do algoritmo genético:
-    results, log, dicMelhoresIndiv, bestFobs, listaBarras = ag.execAg(pms=pms, numGen=100)
+    results, log, dicMelhoresIndiv, bestFobs, listaBarras = ag.execAg(pms=pms, numGen=NG)
     
     #print(dicMelhoresIndiv)
     print("melhores fobs:", bestFobs)
@@ -78,12 +78,14 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
         
     melhorBarra = listaBarras[listaCrom[0][3*n]]
     
-    listaSOCSA = listaCrom[0][:n]
-    listaSOCSB = listaCrom[0][n:2*n]
-    listaSOCC = listaCrom[0][2*n:3*n]
-    
-    pots = [listaSOCSA, listaSOCSB, listaSOCC]
-    
+    listaIA = listaCrom[0][:n]
+    listaIB = listaCrom[0][n:2*n]
+    listaIC = listaCrom[0][2*n:3*n]
+
+    i = np.array([listaIA, listaIB, listaIC])
+    #==Calcula a potência de cada fase==#
+    pots = i * (baseKVmediaTensao/1.732050807)
+
     #==Calcula a energia máxima de cada fase==#
     #Pmax * dT, onde Pmax é a potência máxima de cada fase e dT é o intervalo de tempo em horas
     # deltaE = [[],[],[]]
@@ -129,9 +131,9 @@ def FunBotaoRoda(tv, pma, pmc, pmb, ax, canva):
     #Coluna de horas:
     dicResultadoAg['Hora'] = [i for i in range(n)]
     #Colunas de potências:
-    dicResultadoAg['SOC A'] = listaSOCSA
-    dicResultadoAg['SOC B'] = listaSOCSB
-    dicResultadoAg['SOC C'] = listaSOCC
+    dicResultadoAg['I A'] = listaIA
+    dicResultadoAg['I B'] = listaIB
+    dicResultadoAg['I C'] = listaIC
     #Coluna de barramento:
     dicResultadoAg['Barra'].append(melhorBarra)
     #Coluna de FOB e Desequilíbrio máximo:
